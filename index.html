@@ -8,7 +8,18 @@
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
 
-  gtag('config', 'G-LG6LCCFCTD');
+  // 添加debug_mode以查看控制台日志
+  gtag('config', 'G-LG6LCCFCTD', { 
+    'send_page_view': true,
+    'debug_mode': true
+  });
+  
+  // 发送页面浏览事件
+  gtag('event', 'page_view', {
+    page_title: document.title,
+    page_location: window.location.href,
+    page_path: window.location.pathname
+  });
 </script>    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>药球分量查询系统</title>
@@ -510,6 +521,16 @@
 
         // 页面加载时初始化
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('页面加载完成，开始初始化GA4追踪');
+            
+            // 发送页面加载事件
+            if (typeof gtag !== 'undefined') {
+                gtag('event', 'page_load', {
+                    page_title: document.title,
+                    page_location: window.location.href
+                });
+            }
+            
             // 获取唯一品牌列表
             const uniqueBrands = [...new Set(drugData.map(item => item.企业))];
             
@@ -536,6 +557,34 @@
                     select.appendChild(option);
                 });
             });
+            
+            // 添加品牌选择追踪
+            document.querySelectorAll('.brand-selector').forEach(select => {
+                select.addEventListener('change', function() {
+                    if (this.value && typeof gtag !== 'undefined') {
+                        gtag('event', 'brand_selected', {
+                            brand_name: this.value,
+                            event_category: 'interaction',
+                            event_label: '品牌选择'
+                        });
+                        console.log('GA4: 追踪品牌选择 - ' + this.value);
+                    }
+                });
+            });
+            
+            // 添加添加品牌行追踪
+            const addBrandBtn = document.querySelector('.btn-secondary');
+            if (addBrandBtn) {
+                addBrandBtn.addEventListener('click', function() {
+                    if (typeof gtag !== 'undefined') {
+                        gtag('event', 'add_brand_row', {
+                            event_category: 'interaction',
+                            event_label: '添加品牌行'
+                        });
+                        console.log('GA4: 追踪添加品牌行');
+                    }
+                });
+            }
         });
 
         // 添加品牌行
@@ -574,12 +623,34 @@
             `;
             
             brandsContainer.appendChild(newRow);
+            
+            // 为新品牌选择器添加事件监听
+            const newSelect = document.getElementById(`brand${rowCounter}`);
+            if (newSelect) {
+                newSelect.addEventListener('change', function() {
+                    if (this.value && typeof gtag !== 'undefined') {
+                        gtag('event', 'brand_selected', {
+                            brand_name: this.value,
+                            event_category: 'interaction',
+                            event_label: '新增品牌行选择'
+                        });
+                    }
+                });
+            }
         }
 
         // 删除品牌行
         function removeBrandRow(button) {
             const row = button.closest('.brand-row');
             if (document.querySelectorAll('.brand-row').length > 1) {
+                // 发送GA4事件
+                if (typeof gtag !== 'undefined') {
+                    gtag('event', 'remove_brand_row', {
+                        event_category: 'interaction',
+                        event_label: '删除品牌行'
+                    });
+                }
+                
                 row.remove();
             } else {
                 alert('至少需要保留一个品牌行！');
@@ -588,6 +659,16 @@
 
         // 计算所有品牌结果
         function calculateAll() {
+            console.log('开始计算，发送GA4事件');
+            
+            // 发送计算开始事件
+            if (typeof gtag !== 'undefined') {
+                gtag('event', 'calculation_started', {
+                    event_category: 'calculation',
+                    event_label: '开始计算'
+                });
+            }
+            
             const resultSection = document.getElementById('resultSection');
             const resultsContainer = document.getElementById('results-container');
             
@@ -597,6 +678,8 @@
             // 收集所有品牌行数据
             const brandRows = document.querySelectorAll('.brand-row');
             let hasValidInput = false;
+            let calculatedBrands = [];
+            let totalQuantity = 0;
             
             brandRows.forEach(row => {
                 const brandSelect = row.querySelector('.brand-selector');
@@ -610,6 +693,8 @@
                 }
                 
                 hasValidInput = true;
+                calculatedBrands.push(brand);
+                totalQuantity += quantity;
                 
                 // 查找品牌数据
                 const brandProducts = drugData.filter(item => item.企业 === brand);
@@ -687,9 +772,28 @@
             });
             
             if (hasValidInput) {
+                // 发送计算完成事件
+                if (typeof gtag !== 'undefined') {
+                    gtag('event', 'calculation_completed', {
+                        event_category: 'calculation',
+                        event_label: '计算完成',
+                        brand_count: calculatedBrands.length,
+                        total_quantity: totalQuantity,
+                        brands: calculatedBrands.join(', ')
+                    });
+                }
+                
                 resultSection.style.display = 'block';
                 resultSection.scrollIntoView({ behavior: 'smooth' });
             } else {
+                // 发送计算失败事件
+                if (typeof gtag !== 'undefined') {
+                    gtag('event', 'calculation_failed', {
+                        event_category: 'error',
+                        event_label: '无有效输入'
+                    });
+                }
+                
                 resultsContainer.innerHTML = `
                     <div class="no-brands">
                         <i class="fas fa-exclamation-triangle"></i>
@@ -699,9 +803,11 @@
                 resultSection.style.display = 'block';
             }
         }
+        
+        // 调试功能：在控制台显示GA4状态
+        console.log('药球分量查询系统已加载');
+        console.log('GA4 Measurement ID: G-LG6LCCFCTD');
+        console.log('要测试GA4，请打开浏览器控制台查看网络请求中的"collect"请求');
     </script>
 </body>
-
 </html>
-
-
